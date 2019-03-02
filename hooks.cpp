@@ -50,7 +50,12 @@ bool hook_fn(TESObjectREFR * thisObj, void * arg1, void * arg2, double& result)
 	result = 0.0;
 
 	if (!faction || faction->formID != g_factionKeywordID)
+	{
+#ifdef _DEBUG
+		_MESSAGE("!faction");
+#endif
 		return fn_org(thisObj, arg1, arg2, result);
+	}
 
 	if (!iniFile)
 		return false;
@@ -88,32 +93,30 @@ bool hook_fn(TESObjectREFR * thisObj, void * arg1, void * arg2, double& result)
 
 void hooks::init()
 {
-#ifdef _DEBUG
-	_MESSAGE("init()");
-#endif
 	DataHandler* dhnd = DataHandler::GetSingleton();
 
-	const std::string modName = "BlockStealSE.esp";
-
 	SInt32 modIndex = -1;
-
-	//if (dhnd->GetModIndex(modName.c_str()) == -1)
-	//	return;
-
-	modIndex = dhnd->GetLoadedModIndex(modName.c_str());
-	if (modIndex == -1)
+	modIndex = dhnd->GetLoadedModIndex("BlockStealSE.esp");
+	if (modIndex == -1 || modIndex == 0xFF)
 	{
-		//esl
-		modIndex = dhnd->GetLoadedLightModIndex(modName.c_str());
-		if (modIndex == -1)
-			return;
-
-		g_factionKeywordID |= 0xFE000000;
+		//ESLified 
+		modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esp");
+		if (modIndex == -1 || modIndex >= 0xFFF)
+		{
+			//ESL
+			modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esl");
+			if (modIndex == -1 || modIndex >= 0xFFF)
+			{
+				_MESSAGE("failed. blocksteal.esp/esl not detected.");
+				return;
+			}
+		}
+		g_factionKeywordID |= 0xFE << 24;
 		g_factionKeywordID |= modIndex << 3;
 	}
 	else
 	{
-		//esp.esm
+		//ESP
 		g_factionKeywordID |= (modIndex << 24);
 	}
 

@@ -18,11 +18,13 @@ namespace papyrus
 #ifdef _DEBUG
 		_MESSAGE("* ResetCurrentMultiTapCount");
 #endif
-
 		currentMultiTapCount = 1;
 		targetRefr = nullptr;
 	}
-	float GetMultiTapTimer(StaticFunctionTag* base) { return INIFile::GetSingleton()->multiTapTimer; }
+	float GetMultiTapTimer(StaticFunctionTag* base)
+	{
+		return INIFile::GetSingleton()->multiTapTimer; 
+	}
 }
 
 void papyrus::RegisterFuncs(VMClassRegistry* registry)
