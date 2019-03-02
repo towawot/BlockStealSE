@@ -6,7 +6,9 @@
 #include "hooks.h"
 
 UInt32 g_factionKeywordID = 0x0802;
-UInt32 g_horseRaceFormID = 0x00131FD;
+
+TESObjectREFR* targetRefr = nullptr;
+int currentMultiTapCount = 1;
 
 bool IsSneaking(Actor* actor)
 {
@@ -17,8 +19,10 @@ bool IsHorseRace(TESObjectREFR* refr)
 {
 	if (!refr || !refr->baseForm)
 		return false;
+
+	static UInt32 horseRaceFormID = 0x00131FD;
 	TESNPC* actorBase = DYNAMIC_CAST(refr->baseForm, TESForm, TESNPC);
-	return (actorBase) ? ((actorBase->race.race)->formID == g_horseRaceFormID) : false;
+	return (actorBase) ? ((actorBase->race.race)->formID == horseRaceFormID) : false;
 }
 
 bool IsStealObject(TESObjectREFR * refr)
@@ -34,53 +38,6 @@ bool IsStealObject(TESObjectREFR * refr)
 	return result;
 }
 
-
-bool IsQuestItem(BaseExtraList* extraList)
-{
-	if (!extraList)
-		return false;
-	ExtraAliasInstanceArray* exAliasArray = static_cast<ExtraAliasInstanceArray*>(extraList->GetByType(kExtraData_AliasInstanceArray));
-	if (!exAliasArray)
-		return false;
-
-	for (int i = 0; i < exAliasArray->aliases.count; i++)
-	{
-		ExtraAliasInstanceArray::AliasInfo * aliasInfo = nullptr;
-		if (exAliasArray->aliases.GetNthItem(i, aliasInfo))
-		{
-			//if (!aliasInfo)
-			//	continue;
-			BGSBaseAlias* baseAlias = aliasInfo->alias;
-			if (!baseAlias)
-				continue;
-			if (!((baseAlias->flags >> 2) & 1))
-				continue;
-
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsQuestItem(TESObjectREFR* refr)
-{
-	if (!refr)
-		return false;
-
-	TESObjectREFR* s_ref = refr;
-	ExtraReferenceHandle* refHandle = static_cast<ExtraReferenceHandle*>(refr->extraData.GetByType(kExtraData_ReferenceHandle));
-	if (refHandle)
-		LookupREFRByHandle(&refHandle->handle, &s_ref);
-
-	BaseExtraList* extraList = nullptr;
-	if (s_ref)
-		extraList = &s_ref->extraData;
-	return IsQuestItem(extraList);
-}
-
-TESObjectREFR* targetRefr = nullptr;
-int currentMultiTapCount = 0;
-
 FnEval fn_org;
 bool hook_fn(TESObjectREFR * thisObj, void * arg1, void * arg2, double& result)
 {
@@ -90,94 +47,43 @@ bool hook_fn(TESObjectREFR * thisObj, void * arg1, void * arg2, double& result)
 
 	INIFile* iniFile = INIFile::GetSingleton();
 	TESFaction* faction = static_cast<TESFaction*>(arg1);
+	result = 0.0;
 
 	if (!faction || faction->formID != g_factionKeywordID)
 		return fn_org(thisObj, arg1, arg2, result);
 
 	if (!iniFile)
-		return true;
-
-	if (!thisObj || !thisObj->GetNiNode())
-		return true;
-
-	Actor* actor = DYNAMIC_CAST(thisObj, TESObjectREFR, Actor);
-	if (actor && !IsHorseRace(thisObj))
-	{
-#ifdef _DEBUG
-		_MESSAGE("* actor");
-#endif
-		return true;
-	}
-
-result = 0.0;
-
+		return false;
+	else if (!thisObj)
+		return false;
+	else if (!thisObj->GetNiNode())
+		return false;
+	if (thisObj->formType == kFormType_Character && !IsHorseRace(thisObj))
+		return false;
 	if (!iniFile->IsInList(thisObj->baseForm->formType))
-	{
-#ifdef _DEBUG
-		_MESSAGE("* !IsInList");
-#endif
-		return true;
-	}
-
-	if (iniFile->disableForQuestItem)
-	{
-		TESNPC* actorBase = DYNAMIC_CAST(thisObj->baseForm, TESForm, TESNPC);
-		bool isQuestObject = actorBase ? false : IsQuestItem(thisObj);
-		if (isQuestObject)
-		{
-#ifdef _DEBUG
-			_MESSAGE("* isQuestObject:yes");
-#endif
-			return true;
-		}
-	}
-
+		return false;
 	if (iniFile->enableSneak && IsSneaking(*g_thePlayer))
-	{
-#ifdef _DEBUG
-		_MESSAGE("* sneakSetting:yes & isSneaking:yes");
-#endif
-		return true;
-	}
+		return false;
+	if (!IsStealObject(thisObj))
+		return false;
 
-	if (iniFile->enableMultiTap && currentMultiTapCount >= iniFile->multiTapCount)
+	if (iniFile->enableMultiTap)
 	{
-#ifdef _DEBUG
-		_MESSAGE("* currentMultiTapCount >= multiTapCount");
-#endif
-		targetRefr = nullptr;
-
-		return true;
-	}
-
-	bool isStealObject = IsStealObject(thisObj);
-	if (!isStealObject)
-	{
-#ifdef _DEBUG
-		_MESSAGE("* !isStealObject");
-#endif
-		return true;
-	}
-
-	if (targetRefr != thisObj)
-	{
-#ifdef _DEBUG
-		_MESSAGE("targetRefr != thisObj");
-#endif
-		currentMultiTapCount = 0;
+		if (targetRefr == thisObj && currentMultiTapCount >= iniFile->multiTapCount)
+		{
+			targetRefr = nullptr;
+			return false;
+		}
 	}
 
 	targetRefr = thisObj;
 	result = 1.0;
 
-
 #ifdef _DEBUG
-	_MESSAGE("result %0.1f", result);
+	_MESSAGE("thisObj_ID:%08X result:%0.1f  currentMultiTapCount:%d", thisObj->formID, result, currentMultiTapCount);
 #endif
 
 	return true;
-
-	//return fn_org(thisObj, arg1, arg2, result);
 }
 
 void hooks::init()
@@ -186,19 +92,45 @@ void hooks::init()
 	_MESSAGE("init()");
 #endif
 	DataHandler* dhnd = DataHandler::GetSingleton();
-	const ModInfo* modInfo = dhnd->LookupModByName("BlockStealSE.esp");
-	if (!modInfo)
+
+	const std::string modName = "BlockStealSE.esp";
+
+	SInt32 modIndex = -1;
+
+	//if (dhnd->GetModIndex(modName.c_str()) == -1)
+	//	return;
+
+	modIndex = dhnd->GetLoadedModIndex(modName.c_str());
+	if (modIndex == -1)
+	{
+		//esl
+		modIndex = dhnd->GetLoadedLightModIndex(modName.c_str());
+		if (modIndex == -1)
+			return;
+
+		g_factionKeywordID |= 0xFE000000;
+		g_factionKeywordID |= modIndex << 3;
+	}
+	else
+	{
+		//esp.esm
+		g_factionKeywordID |= (modIndex << 24);
+	}
+
+	//check keyword id
+	if (!LookupFormByID(g_factionKeywordID))
 		return;
 
-	UInt32 modIndex = modInfo->modIndex;
-	g_factionKeywordID |= (modIndex << 24);
+#ifdef _DEBUG
+	_MESSAGE("g_factionKeywordID %08X", g_factionKeywordID);
+#endif
 
 	for (ObScriptCommand * iter = g_firstObScriptCommand; iter->opcode < kObScript_NumObScriptCommands + kObScript_ScriptOpBase; ++iter)
 	{
 		if (std::strcmp(iter->longName, "CanPayCrimeGold") == 0)
 		{
 #ifdef _DEBUG
-			_MESSAGE("CanPayCrimeGold hit!");
+			_MESSAGE("Hook CanPayCrimeGold function");
 #endif
 			fn_org = iter->eval;
 			iter->eval = hook_fn;

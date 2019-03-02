@@ -24,9 +24,10 @@ INIFile::INIFile()
 	GetPrivateProfileString("General", "MultiTapTimer", "0.3", buf, sizeof(buf), INI_FILE);
 	multiTapTimer = std::stof(buf);
 
-	GetPrivateProfileString("General", "DisableForQuestItem", "false", buf, sizeof(buf), INI_FILE);
-	result = ToLowerStr(buf);
-	disableForQuestItem = (result == "true");
+	//Remove this from version 0.6
+	//GetPrivateProfileString("General", "DisableForQuestItem", "false", buf, sizeof(buf), INI_FILE);
+	//result = ToLowerStr(buf);
+	//disableForQuestItem = (result == "true");
 
 // 	Object section
 	GetPrivateProfileString("Object", "Armor", "true", buf, sizeof(buf), INI_FILE);

@@ -56,7 +56,6 @@ bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info)
 	if(!g_messaging)
 		return false;
 
-
 	return true;
 }
 

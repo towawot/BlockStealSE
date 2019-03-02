@@ -6,8 +6,22 @@
 
 namespace papyrus
 {
-	void IncCurrentMultiTapCount(StaticFunctionTag* base) { currentMultiTapCount += 1; }
-	void ResetCurrentMultiTapCount(StaticFunctionTag* base) { currentMultiTapCount = 1; }
+	void IncCurrentMultiTapCount(StaticFunctionTag* base)
+	{
+#ifdef _DEBUG
+		_MESSAGE("* IncCurrentMultiTapCount");
+#endif
+		currentMultiTapCount += 1;
+	}
+	void ResetCurrentMultiTapCount(StaticFunctionTag* base)
+	{
+#ifdef _DEBUG
+		_MESSAGE("* ResetCurrentMultiTapCount");
+#endif
+
+		currentMultiTapCount = 1;
+		targetRefr = nullptr;
+	}
 	float GetMultiTapTimer(StaticFunctionTag* base) { return INIFile::GetSingleton()->multiTapTimer; }
 }
 
