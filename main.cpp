@@ -9,16 +9,12 @@ IDebugLog	gLog;
 PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
 SKSEMessagingInterface	* g_messaging = nullptr;
 
-
 void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 {
 	switch (msg->type)
 	{
 	case SKSEMessagingInterface::kMessage_DataLoaded:
 		
-#ifdef _DEBUG
-		_MESSAGE("kMessage_DataLoaded");
-#endif
 		papyrus::RegisterFuncs((*g_skyrimVM)->GetClassRegistry());
 		hooks::init();
 		

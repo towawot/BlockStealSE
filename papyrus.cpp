@@ -13,6 +13,7 @@ namespace papyrus
 #endif
 		currentMultiTapCount += 1;
 	}
+
 	void ResetCurrentMultiTapCount(StaticFunctionTag* base)
 	{
 #ifdef _DEBUG
@@ -21,6 +22,7 @@ namespace papyrus
 		currentMultiTapCount = 1;
 		targetRefr = nullptr;
 	}
+
 	float GetMultiTapTimer(StaticFunctionTag* base)
 	{
 		return INIFile::GetSingleton()->multiTapTimer; 

@@ -1,12 +1,10 @@
 #include "skse64/GameRTTI.h"
 #include "skse64/GameData.h"
 #include "skse64/ObScript.h"
-#include "skse64/GameExtraData.h"
 #include "inifile.h"
 #include "hooks.h"
 
 UInt32 g_factionKeywordID = 0x0802;
-
 TESObjectREFR* targetRefr = nullptr;
 int currentMultiTapCount = 1;
 
@@ -47,21 +45,17 @@ bool hook_fn(TESObjectREFR * thisObj, void * arg1, void * arg2, double& result)
 
 	INIFile* iniFile = INIFile::GetSingleton();
 	TESFaction* faction = static_cast<TESFaction*>(arg1);
-	result = 0.0;
 
 	if (!faction || faction->formID != g_factionKeywordID)
-	{
-#ifdef _DEBUG
-		_MESSAGE("!faction");
-#endif
 		return fn_org(thisObj, arg1, arg2, result);
-	}
+
+	result = 0.0;
 
 	if (!iniFile)
 		return false;
-	else if (!thisObj)
+	if (!thisObj)
 		return false;
-	else if (!thisObj->GetNiNode())
+	if (!thisObj->GetNiNode())
 		return false;
 	if (thisObj->formType == kFormType_Character && !IsHorseRace(thisObj))
 		return false;
@@ -71,14 +65,10 @@ bool hook_fn(TESObjectREFR * thisObj, void * arg1, void * arg2, double& result)
 		return false;
 	if (!IsStealObject(thisObj))
 		return false;
-
-	if (iniFile->enableMultiTap)
+	if (iniFile->enableMultiTap && targetRefr == thisObj && currentMultiTapCount >= iniFile->multiTapCount)
 	{
-		if (targetRefr == thisObj && currentMultiTapCount >= iniFile->multiTapCount)
-		{
-			targetRefr = nullptr;
-			return false;
-		}
+		targetRefr = nullptr;
+		return false;
 	}
 
 	targetRefr = thisObj;
@@ -94,30 +84,38 @@ bool hook_fn(TESObjectREFR * thisObj, void * arg1, void * arg2, double& result)
 void hooks::init()
 {
 	DataHandler* dhnd = DataHandler::GetSingleton();
+	if (!dhnd)
+		return;
 
 	SInt32 modIndex = -1;
 	modIndex = dhnd->GetLoadedModIndex("BlockStealSE.esp");
-	if (modIndex == -1 || modIndex == 0xFF)
-	{
-		//ESLified 
-		modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esp");
-		if (modIndex == -1 || modIndex >= 0xFFF)
-		{
-			//ESL
-			modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esl");
-			if (modIndex == -1 || modIndex >= 0xFFF)
-			{
-				_MESSAGE("failed. blocksteal.esp/esl not detected.");
-				return;
-			}
-		}
-		g_factionKeywordID |= 0xFE << 24;
-		g_factionKeywordID |= modIndex << 3;
-	}
-	else
+	if (modIndex != -1 || modIndex < 0xFF)
 	{
 		//ESP
 		g_factionKeywordID |= (modIndex << 24);
+	}
+	else
+	{
+		//ESLified 
+		modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esp");
+		if (modIndex != -1 || modIndex < 0xFFF)
+		{
+			g_factionKeywordID |= 0xFE << 24;
+			g_factionKeywordID |= modIndex << 3;
+		}
+		else
+		{
+			//ESL
+			modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esl");
+			if (modIndex != -1 || modIndex < 0xFFF)
+			{
+				g_factionKeywordID |= 0xFE << 24;
+				g_factionKeywordID |= modIndex << 3;
+			}
+
+			_MESSAGE("failed. \"blocksteal.esp/esl\" not detected.");
+			return;
+		}
 	}
 
 	//check keyword id
@@ -125,10 +123,10 @@ void hooks::init()
 		return;
 
 #ifdef _DEBUG
-	_MESSAGE("g_factionKeywordID %08X", g_factionKeywordID);
+	_MESSAGE("factionKeywordID %08X", g_factionKeywordID);
 #endif
 
-	for (ObScriptCommand * iter = g_firstObScriptCommand; iter->opcode < kObScript_NumObScriptCommands + kObScript_ScriptOpBase; ++iter)
+	for (ObScriptCommand* iter = g_firstObScriptCommand; iter->opcode < kObScript_NumObScriptCommands + kObScript_ScriptOpBase; ++iter)
 	{
 		if (std::strcmp(iter->longName, "CanPayCrimeGold") == 0)
 		{

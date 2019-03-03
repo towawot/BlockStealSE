@@ -2,8 +2,8 @@
 
 class TESObjectREFR;
 
-extern int currentMultiTapCount;
 extern TESObjectREFR* targetRefr;
+extern int currentMultiTapCount;
 
 namespace hooks
 {

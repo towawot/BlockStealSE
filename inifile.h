@@ -8,13 +8,16 @@ class INIFile
 {
 private:
 	static INIFile* s_pInstance;
+
+	std::string ToLowerStr(std::string str);
+	INIFile(void);
+
 public:
 	bool enableSneak;
 	bool enableMultiTap;
 	UInt32 multiTapCount;
 	double multiTapTimer;
 	std::vector<UInt32> onjectTypeList;
-	bool disableForQuestItem;
 
 	bool IsInList(UInt32 num);
 
@@ -29,8 +32,4 @@ public:
 		delete s_pInstance;
 		s_pInstance = nullptr;
 	}
-private:
-	std::string ToLowerStr(std::string str);
-private:
-	INIFile(void);
 };
