@@ -88,34 +88,22 @@ void hooks::init()
 		return;
 
 	SInt32 modIndex = -1;
-	modIndex = dhnd->GetLoadedModIndex("BlockStealSE.esp");
-	if (modIndex != -1 || modIndex < 0xFF)
-	{
-		//ESP
+
+	const ModInfo* modInfo = DataHandler::GetSingleton()->LookupModByName("BlockStealSE.esp");
+	if (!modInfo)
+		return;
+
+	modIndex = modInfo->GetPartialIndex();
+	if (modIndex == -1)
+		return;
+	else if(modIndex < 0xFF)
 		g_factionKeywordID |= (modIndex << 24);
-	}
+	else if(modInfo->IsLight())
+		g_factionKeywordID |= modIndex << 8;
 	else
 	{
-		//ESLified 
-		modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esp");
-		if (modIndex != -1 || modIndex < 0xFFF)
-		{
-			g_factionKeywordID |= 0xFE << 24;
-			g_factionKeywordID |= modIndex << 3;
-		}
-		else
-		{
-			//ESL
-			modIndex = dhnd->GetLoadedLightModIndex("BlockStealSE.esl");
-			if (modIndex != -1 || modIndex < 0xFFF)
-			{
-				g_factionKeywordID |= 0xFE << 24;
-				g_factionKeywordID |= modIndex << 3;
-			}
-
-			_MESSAGE("failed. \"blocksteal.esp/esl\" not detected.");
-			return;
-		}
+		_MESSAGE("failed. \"blocksteal.esp\" not detected.");
+		return;
 	}
 
 	//check keyword id

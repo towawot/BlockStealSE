@@ -42,7 +42,7 @@ bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info)
 
 	if(skse->isEditor)
 		return false;
-	else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_62)
+	else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_73)
 	{
 		_MESSAGE("unsupported runtime version %08X", skse->runtimeVersion);
 		return false;
