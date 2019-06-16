@@ -5,9 +5,9 @@
 #include "papyrus.h"
 #include "hooks.h"
 
-IDebugLog	gLog;
-PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
-SKSEMessagingInterface	* g_messaging = nullptr;
+IDebugLog gLog;
+PluginHandle g_pluginHandle = kPluginHandle_Invalid;
+SKSEMessagingInterface* g_messaging = nullptr;
 
 void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 {
@@ -42,7 +42,7 @@ bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info)
 
 	if(skse->isEditor)
 		return false;
-	else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_73)
+	else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_80)
 	{
 		_MESSAGE("unsupported runtime version %08X", skse->runtimeVersion);
 		return false;
